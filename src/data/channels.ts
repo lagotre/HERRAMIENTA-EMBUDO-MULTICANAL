@@ -44,6 +44,13 @@ export const channels: Channel[] = [
     icon: '🤖',
     description: 'Compra automatizada de espacios publicitarios digitales',
   },
+  {
+    id: 'otro-pagados',
+    name: 'Otro',
+    category: 'pagados',
+    icon: '➕',
+    description: 'Canal pago adicional no listado — especifica cuál',
+  },
 
   // PROPIOS
   {
@@ -95,6 +102,13 @@ export const channels: Channel[] = [
     icon: '📧',
     description: 'Email marketing, newsletters, automatizaciones de CRM',
   },
+  {
+    id: 'otro-propios',
+    name: 'Otro',
+    category: 'propios',
+    icon: '➕',
+    description: 'Canal propio adicional no listado — especifica cuál',
+  },
 
   // GANADOS
   {
@@ -132,6 +146,13 @@ export const channels: Channel[] = [
     icon: '🗣️',
     description: 'Recomendaciones orgánicas de clientes satisfechos, promotores de la marca',
   },
+  {
+    id: 'otro-ganados',
+    name: 'Otro',
+    category: 'ganados',
+    icon: '➕',
+    description: 'Canal ganado adicional no listado — especifica cuál',
+  },
 ];
 
 export const channelsByCategory = {
@@ -142,8 +163,20 @@ export const channelsByCategory = {
 
 export const getChannelById = (id: string) => channels.find((c) => c.id === id);
 
+/** Returns the display name for a channel, substituting custom name for "otro-*" channels */
+export function getChannelDisplayName(
+  channelId: string,
+  customChannelNames: Record<string, string>
+): string {
+  const channel = getChannelById(channelId);
+  if (!channel) return channelId;
+  if (channelId.startsWith('otro-') && customChannelNames[channelId]) {
+    return customChannelNames[channelId];
+  }
+  return channel.name;
+}
+
 // Canales sugeridos (típicos) por etapa del funnel
-// El estudiante puede elegir cualquiera, pero estos se destacan como recomendados
 export const suggestedChannelsByStage: Record<string, string[]> = {
   conciencia: [
     'atl', 'btl', 'meta-ads', 'google-ads', 'programatica',

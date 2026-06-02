@@ -23,8 +23,11 @@ const wizardSteps = [
 const emptyStageData = (): StageData => ({ selectedChannelIds: [], mappings: {} });
 
 const initialState: JourneyState = {
-  studentName: '',
+  groupNumber: '',
   brandName: '',
+  date: '',
+  shopperProfile: '',
+  customChannelNames: {},
   stages: Object.fromEntries(funnelStages.map((s) => [s.id, emptyStageData()])),
 };
 
@@ -32,9 +35,12 @@ export default function JourneyPage() {
   const [step, setStep] = useState(0);
   const [journey, setJourney] = useState<JourneyState>(initialState);
 
-  const updateField = useCallback((field: 'studentName' | 'brandName', value: string) => {
-    setJourney((prev) => ({ ...prev, [field]: value }));
-  }, []);
+  const updateField = useCallback(
+    (field: 'groupNumber' | 'brandName' | 'date' | 'shopperProfile', value: string) => {
+      setJourney((prev) => ({ ...prev, [field]: value }));
+    },
+    []
+  );
 
   const toggleChannel = useCallback((stageId: string, channelId: string) => {
     setJourney((prev) => {
@@ -80,6 +86,13 @@ export default function JourneyPage() {
     []
   );
 
+  const updateCustomChannelName = useCallback((channelId: string, name: string) => {
+    setJourney((prev) => ({
+      ...prev,
+      customChannelNames: { ...prev.customChannelNames, [channelId]: name },
+    }));
+  }, []);
+
   const goNext = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
   const goBack = () => setStep((s) => Math.max(s - 1, 0));
   const restart = () => {
@@ -87,11 +100,11 @@ export default function JourneyPage() {
     setStep(0);
   };
 
-  const isPreviewStep = step === TOTAL_STEPS - 1;
-  const isFunnelStep  = step >= 1 && step <= funnelStages.length;
+  const isPreviewStep  = step === TOTAL_STEPS - 1;
+  const isFunnelStep   = step >= 1 && step <= funnelStages.length;
   const funnelStageIndex = isFunnelStep ? step - 1 : -1;
-  const currentStage  = isFunnelStep ? funnelStages[funnelStageIndex] : null;
-  const nextStageName =
+  const currentStage   = isFunnelStep ? funnelStages[funnelStageIndex] : null;
+  const nextStageName  =
     isFunnelStep && funnelStageIndex < funnelStages.length - 1
       ? funnelStages[funnelStageIndex + 1].name
       : '';
@@ -111,6 +124,7 @@ export default function JourneyPage() {
           </div>
           {journey.brandName && (
             <div className="hidden sm:block text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
+              {journey.groupNumber && <span className="mr-1">{journey.groupNumber} ·</span>}
               {journey.brandName}
             </div>
           )}
@@ -118,13 +132,18 @@ export default function JourneyPage() {
       </header>
 
       {/* ── Main ── */}
-      <main className={`mx-auto px-4 py-8 ${isFunnelStep ? 'max-w-6xl' : isPreviewStep ? 'max-w-full' : 'max-w-xl'}`}>
-
+      <main
+        className={`mx-auto px-4 py-8 ${
+          isFunnelStep ? 'max-w-6xl' : isPreviewStep ? 'max-w-full' : 'max-w-xl'
+        }`}
+      >
         {/* Step 0: Welcome */}
         {step === 0 && (
           <WelcomeStep
-            studentName={journey.studentName}
+            groupNumber={journey.groupNumber}
             brandName={journey.brandName}
+            date={journey.date}
+            shopperProfile={journey.shopperProfile}
             onChange={updateField}
             onNext={goNext}
           />
@@ -134,8 +153,9 @@ export default function JourneyPage() {
         {isFunnelStep && currentStage && (
           <div className="flex gap-6 items-start">
 
-            {/* Left: sticky funnel panel — hidden on small screens */}
-            <aside className="hidden lg:block w-52 flex-shrink-0 sticky top-24">
+            {/* ─ Left sidebar: funnel + shopper profile ─ */}
+            <aside className="hidden lg:flex flex-col gap-4 w-52 flex-shrink-0 sticky top-24">
+              {/* Funnel visualizer */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
                 <FunnelVisualizer
                   currentStageId={currentStage.id}
@@ -143,15 +163,27 @@ export default function JourneyPage() {
                   mode="sidebar"
                 />
               </div>
-              {/* Mini tip */}
-              <p className="mt-3 text-[10px] text-gray-400 text-center leading-relaxed px-2">
-                Selecciona los canales activos en cada etapa y define su objetivo y KPI.
+
+              {/* Shopper profile card */}
+              {journey.shopperProfile && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
+                  <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-1.5">
+                    👤 Perfil del Shopper
+                  </p>
+                  <p className="text-xs text-indigo-800 leading-relaxed">
+                    {journey.shopperProfile}
+                  </p>
+                </div>
+              )}
+
+              <p className="text-[10px] text-gray-400 text-center leading-relaxed px-2">
+                Selecciona los canales activos en esta etapa y define su objetivo y KPI.
               </p>
             </aside>
 
-            {/* Right: stage form */}
+            {/* ─ Right: stage form ─ */}
             <div className="flex-1 min-w-0">
-              {/* Mobile-only mini funnel strip */}
+              {/* Mobile mini-strip */}
               <div className="lg:hidden mb-4 bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3 overflow-x-auto">
                 {funnelStages.map((stage, i) => {
                   const isActive = stage.id === currentStage.id;
@@ -182,10 +214,12 @@ export default function JourneyPage() {
                 totalStages={funnelStages.length}
                 nextStageName={nextStageName}
                 stageData={journey.stages[currentStage.id] ?? emptyStageData()}
+                customChannelNames={journey.customChannelNames}
                 onToggleChannel={(channelId) => toggleChannel(currentStage.id, channelId)}
                 onUpdateMapping={(channelId, field, value) =>
                   updateMapping(currentStage.id, channelId, field, value)
                 }
+                onUpdateCustomChannelName={updateCustomChannelName}
                 onNext={goNext}
                 onBack={goBack}
               />
@@ -211,20 +245,23 @@ export default function JourneyPage() {
                 <Button variant="outline" onClick={restart} className="rounded-xl px-5 text-gray-500">
                   Reiniciar
                 </Button>
-                <PDFExportButton brandName={journey.brandName} studentName={journey.studentName} />
+                <PDFExportButton brandName={journey.brandName} groupNumber={journey.groupNumber} />
               </div>
             </div>
 
             <div className="rounded-2xl border border-gray-200 overflow-x-auto shadow-lg">
               <JourneyPreview
                 brandName={journey.brandName}
-                studentName={journey.studentName}
+                groupNumber={journey.groupNumber}
+                date={journey.date}
+                shopperProfile={journey.shopperProfile}
+                customChannelNames={journey.customChannelNames}
                 stages={journey.stages}
               />
             </div>
 
             <div className="mt-6 flex justify-center">
-              <PDFExportButton brandName={journey.brandName} studentName={journey.studentName} />
+              <PDFExportButton brandName={journey.brandName} groupNumber={journey.groupNumber} />
             </div>
           </div>
         )}

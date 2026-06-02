@@ -1,6 +1,6 @@
 'use client';
 
-import { channels, channelsByCategory, suggestedChannelsByStage, getChannelById } from '@/data/channels';
+import { channelsByCategory, suggestedChannelsByStage, getChannelById, getChannelDisplayName } from '@/data/channels';
 import { objectiveSuggestions } from '@/data/objectives';
 import { kpiSuggestionsByStage } from '@/data/kpiLibrary';
 import { stageEmojis, phaseLabels } from '@/data/funnelStages';
@@ -14,8 +14,10 @@ type FunnelStageStepProps = {
   totalStages: number;
   nextStageName: string;
   stageData: StageData;
+  customChannelNames: Record<string, string>;
   onToggleChannel: (channelId: string) => void;
   onUpdateMapping: (channelId: string, field: 'objective' | 'kpi', value: string) => void;
+  onUpdateCustomChannelName: (channelId: string, name: string) => void;
   onNext: () => void;
   onBack: () => void;
 };
@@ -28,7 +30,6 @@ const categoryConfig = {
     badgeBg: 'bg-blue-100 text-blue-700',
     cardBorder: 'border-l-blue-400',
     textColor: 'text-blue-700',
-    headerBg: 'bg-blue-50 border-blue-100',
   },
   propios: {
     label: 'Canales Propios',
@@ -37,7 +38,6 @@ const categoryConfig = {
     badgeBg: 'bg-emerald-100 text-emerald-700',
     cardBorder: 'border-l-emerald-400',
     textColor: 'text-emerald-700',
-    headerBg: 'bg-emerald-50 border-emerald-100',
   },
   ganados: {
     label: 'Canales Ganados',
@@ -46,7 +46,6 @@ const categoryConfig = {
     badgeBg: 'bg-orange-100 text-orange-700',
     cardBorder: 'border-l-orange-400',
     textColor: 'text-orange-700',
-    headerBg: 'bg-orange-50 border-orange-100',
   },
 } as const;
 
@@ -62,43 +61,70 @@ function ChannelPill({
   channel,
   isSelected,
   isSuggested,
+  customName,
   onToggle,
+  onCustomNameChange,
 }: {
   channel: Channel;
   isSelected: boolean;
   isSuggested: boolean;
+  customName: string;
   onToggle: () => void;
+  onCustomNameChange: (name: string) => void;
 }) {
   const config = categoryConfig[channel.category];
+  const isOtro = channel.id.startsWith('otro-');
+  const displayLabel = isOtro && customName ? customName : channel.name;
+
   return (
-    <button
-      onClick={onToggle}
-      title={channel.description}
-      className={`relative flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all cursor-pointer ${
-        isSelected
-          ? config.selectedBorder + ' shadow-sm'
-          : 'border-gray-200 bg-white hover:border-gray-300'
-      }`}
-    >
-      {isSuggested && !isSelected && (
-        <span className="absolute -top-2 -right-1 text-[10px] bg-amber-400 text-amber-900 font-bold px-1.5 py-0.5 rounded-full leading-none">
-          ✦ típico
-        </span>
-      )}
-      <div
-        className={`w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-          isSelected ? `${config.checkBg} border-transparent` : 'border-gray-300 bg-white'
+    <div className="flex flex-col gap-1">
+      <button
+        onClick={onToggle}
+        title={channel.description}
+        className={`relative flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all cursor-pointer ${
+          isSelected
+            ? config.selectedBorder + ' shadow-sm'
+            : 'border-gray-200 bg-white hover:border-gray-300'
         }`}
       >
-        {isSelected && (
-          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
+        {/* "típico" badge */}
+        {isSuggested && !isSelected && (
+          <span className="absolute -top-2 -right-1 text-[10px] bg-amber-400 text-amber-900 font-bold px-1.5 py-0.5 rounded-full leading-none">
+            ✦ típico
+          </span>
         )}
-      </div>
-      <span className="text-base leading-none">{channel.icon}</span>
-      <span className="text-sm font-medium text-gray-800 whitespace-nowrap">{channel.name}</span>
-    </button>
+
+        {/* Checkbox */}
+        <div
+          className={`w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+            isSelected ? `${config.checkBg} border-transparent` : 'border-gray-300 bg-white'
+          }`}
+        >
+          {isSelected && (
+            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </div>
+
+        <span className="text-base leading-none">{channel.icon}</span>
+        <span className="text-sm font-medium text-gray-800 whitespace-nowrap">
+          {displayLabel}
+        </span>
+      </button>
+
+      {/* Inline name input — only for "otro" channels when selected */}
+      {isOtro && isSelected && (
+        <input
+          type="text"
+          value={customName}
+          placeholder="¿Cuál canal? Ej: TikTok Ads"
+          onChange={(e) => onCustomNameChange(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full px-3 py-1.5 text-xs rounded-lg border border-gray-300 bg-white text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
+        />
+      )}
+    </div>
   );
 }
 
@@ -108,8 +134,10 @@ export function FunnelStageStep({
   totalStages,
   nextStageName,
   stageData,
+  customChannelNames,
   onToggleChannel,
   onUpdateMapping,
+  onUpdateCustomChannelName,
   onNext,
   onBack,
 }: FunnelStageStepProps) {
@@ -130,7 +158,7 @@ export function FunnelStageStep({
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Stage header — compact since the sidebar funnel already shows the context */}
+      {/* Stage header — compact, sidebar provides context */}
       <div className={`rounded-2xl px-5 py-4 mb-5 bg-gradient-to-r ${stageGradients[stage.id]} text-white shadow-md`}>
         <div className="flex items-center gap-3">
           <span className="text-3xl flex-shrink-0">{stageEmojis[stage.id]}</span>
@@ -177,7 +205,9 @@ export function FunnelStageStep({
                       channel={channel}
                       isSelected={selectedIds.includes(channel.id)}
                       isSuggested={suggested.includes(channel.id)}
+                      customName={customChannelNames[channel.id] ?? ''}
                       onToggle={() => onToggleChannel(channel.id)}
+                      onCustomNameChange={(name) => onUpdateCustomChannelName(channel.id, name)}
                     />
                   ))}
                 </div>
@@ -206,6 +236,7 @@ export function FunnelStageStep({
             if (!channel) return null;
             const config = categoryConfig[channel.category];
             const mapping = stageData.mappings[channelId] || { objective: '', kpi: '' };
+            const displayName = getChannelDisplayName(channelId, customChannelNames);
 
             return (
               <div
@@ -214,7 +245,7 @@ export function FunnelStageStep({
               >
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-xl">{channel.icon}</span>
-                  <span className="font-bold text-gray-800">{channel.name}</span>
+                  <span className="font-bold text-gray-800">{displayName}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${config.badgeBg}`}>
                     {config.label.replace('Canales ', '')}
                   </span>
@@ -229,7 +260,7 @@ export function FunnelStageStep({
                     <textarea
                       value={mapping.objective}
                       onChange={(e) => onUpdateMapping(channelId, 'objective', e.target.value)}
-                      placeholder={`¿Qué quieres lograr con ${channel.name} en esta etapa?`}
+                      placeholder={`¿Qué quieres lograr con ${displayName} en esta etapa?`}
                       rows={2}
                       className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-800 placeholder-gray-400 resize-none outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
                     />
@@ -267,7 +298,7 @@ export function FunnelStageStep({
         </div>
       )}
 
-      {/* Empty state when no channels selected */}
+      {/* Empty state */}
       {selectedIds.length === 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center text-sm text-amber-700">
           👆 Selecciona al menos un canal para definir el objetivo y KPI de esta etapa.
@@ -287,7 +318,9 @@ export function FunnelStageStep({
           onClick={onNext}
           className="flex-1 py-2.5 font-semibold bg-indigo-600 hover:bg-indigo-700 rounded-xl"
         >
-          {stageIndex < totalStages - 1 ? `Siguiente etapa: ${nextStageName} →` : 'Ver mi Customer Journey Map →'}
+          {stageIndex < totalStages - 1
+            ? `Siguiente etapa: ${nextStageName} →`
+            : 'Ver mi Customer Journey Map →'}
         </Button>
       </div>
     </div>

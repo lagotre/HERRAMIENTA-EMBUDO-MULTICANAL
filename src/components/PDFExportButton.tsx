@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 
 type PDFExportButtonProps = {
   brandName: string;
-  studentName: string;
+  groupNumber: string;
 };
 
-export function PDFExportButton({ brandName, studentName }: PDFExportButtonProps) {
+export function PDFExportButton({ brandName, groupNumber }: PDFExportButtonProps) {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleExport = async () => {
@@ -91,7 +91,7 @@ export function PDFExportButton({ brandName, studentName }: PDFExportButtonProps
         }
       }
 
-      const fileName = `journey-map-${brandName.replace(/\s+/g, '-').toLowerCase()}-${studentName.split(' ')[0].toLowerCase()}.pdf`;
+      const fileName = `journey-map-${brandName.replace(/\s+/g, '-').toLowerCase()}-${groupNumber.replace(/\s+/g, '-').toLowerCase()}.pdf`;
       pdf.save(fileName);
     } catch (error) {
       console.error('Error generando PDF:', error);
