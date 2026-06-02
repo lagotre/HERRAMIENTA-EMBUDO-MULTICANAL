@@ -13,6 +13,7 @@ export type FunnelStage = {
   name: string;
   phase: 'antes' | 'durante' | 'despues';
   description: string;
+  shopperQuestion: string; // "¿Cómo me descubre el shopper?"
   color: string;
   bgColor: string;
   borderColor: string;
@@ -23,15 +24,16 @@ export type ChannelMapping = {
   kpi: string;
 };
 
-export type StageMapping = Record<string, ChannelMapping>;
-
-export type JourneyMappings = Record<string, StageMapping>;
+// Per-stage state: which channels are active + their objective/KPI
+export type StageData = {
+  selectedChannelIds: string[];
+  mappings: Record<string, ChannelMapping>;
+};
 
 export type JourneyState = {
   studentName: string;
   brandName: string;
-  selectedChannelIds: string[];
-  mappings: JourneyMappings;
+  stages: Record<string, StageData>;
 };
 
 export type KpiCategory = {

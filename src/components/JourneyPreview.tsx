@@ -1,14 +1,13 @@
 'use client';
 
 import { getChannelById } from '@/data/channels';
-import { funnelStages, phaseLabels } from '@/data/funnelStages';
-import type { JourneyMappings } from '@/types/journey';
+import { funnelStages, phaseLabels, stageEmojis } from '@/data/funnelStages';
+import type { StageData } from '@/types/journey';
 
 type JourneyPreviewProps = {
   brandName: string;
   studentName: string;
-  selectedChannelIds: string[];
-  mappings: JourneyMappings;
+  stages: Record<string, StageData>;
 };
 
 const stageGradients = [
@@ -19,14 +18,6 @@ const stageGradients = [
   'from-rose-500 to-rose-600',
 ];
 
-const stageLightBg = [
-  'bg-violet-50 border-violet-200',
-  'bg-blue-50 border-blue-200',
-  'bg-emerald-50 border-emerald-200',
-  'bg-orange-50 border-orange-200',
-  'bg-rose-50 border-rose-200',
-];
-
 const stageTextColors = [
   'text-violet-700',
   'text-blue-700',
@@ -35,12 +26,12 @@ const stageTextColors = [
   'text-rose-700',
 ];
 
-const stageBorderColors = [
-  'border-violet-300',
-  'border-blue-300',
-  'border-emerald-300',
-  'border-orange-300',
-  'border-rose-300',
+const stageLightBg = [
+  'bg-violet-50',
+  'bg-blue-50',
+  'bg-emerald-50',
+  'bg-orange-50',
+  'bg-rose-50',
 ];
 
 const categoryBorderColors: Record<string, string> = {
@@ -55,26 +46,31 @@ const categoryBadgeColors: Record<string, string> = {
   ganados: 'bg-orange-100 text-orange-700',
 };
 
-export function JourneyPreview({ brandName, studentName, selectedChannelIds, mappings }: JourneyPreviewProps) {
+export function JourneyPreview({ brandName, studentName, stages }: JourneyPreviewProps) {
   const today = new Date().toLocaleDateString('es-CO', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
 
-  // Group channels by category for ordered display
+  // Collect all unique channels used across all stages, ordered by category
+  const allChannelIds = new Set<string>();
+  funnelStages.forEach((stage) => {
+    (stages[stage.id]?.selectedChannelIds ?? []).forEach((id) => allChannelIds.add(id));
+  });
+
   const orderedChannelIds = [
-    ...selectedChannelIds.filter((id) => getChannelById(id)?.category === 'pagados'),
-    ...selectedChannelIds.filter((id) => getChannelById(id)?.category === 'propios'),
-    ...selectedChannelIds.filter((id) => getChannelById(id)?.category === 'ganados'),
+    ...Array.from(allChannelIds).filter((id) => getChannelById(id)?.category === 'pagados'),
+    ...Array.from(allChannelIds).filter((id) => getChannelById(id)?.category === 'propios'),
+    ...Array.from(allChannelIds).filter((id) => getChannelById(id)?.category === 'ganados'),
   ];
 
-  const phases = ['antes', 'durante', 'despues'] as const;
+  const hasAnyData = orderedChannelIds.length > 0;
 
   return (
-    <div id="journey-map-preview" className="bg-white font-sans" style={{ minWidth: 900 }}>
-      {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 text-white px-8 py-6 rounded-t-2xl">
+    <div id="journey-map-preview" className="bg-white font-sans" style={{ minWidth: 860 }}>
+      {/* ── Header ── */}
+      <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-600 text-white px-8 py-6 rounded-t-2xl">
         <div className="flex items-start justify-between">
           <div>
             <div className="text-indigo-200 text-xs font-semibold uppercase tracking-widest mb-1">
@@ -85,101 +81,124 @@ export function JourneyPreview({ brandName, studentName, selectedChannelIds, map
               Elaborado por: <span className="text-white font-semibold">{studentName}</span>
             </p>
           </div>
-          <div className="text-right">
-            <div className="text-indigo-200 text-xs">{today}</div>
-            <div className="mt-2 flex gap-3 text-xs">
-              <div className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-300 inline-block" />
-                <span className="text-indigo-200">Pagados</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 inline-block" />
-                <span className="text-indigo-200">Propios</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-orange-300 inline-block" />
-                <span className="text-indigo-200">Ganados</span>
-              </div>
+          <div className="text-right text-xs">
+            <div className="text-indigo-300">{today}</div>
+            <div className="mt-3 space-y-1">
+              {[
+                { color: 'bg-blue-300', label: 'Pagados' },
+                { color: 'bg-emerald-300', label: 'Propios' },
+                { color: 'bg-orange-300', label: 'Ganados' },
+              ].map(({ color, label }) => (
+                <div key={label} className="flex items-center gap-1.5 justify-end">
+                  <span className={`w-2.5 h-2.5 rounded-full ${color} inline-block`} />
+                  <span className="text-indigo-200">{label}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Phase labels */}
+        {/* Funnel stage headers */}
         <div className="grid grid-cols-5 gap-2 mt-6">
           {funnelStages.map((stage, i) => (
             <div
               key={stage.id}
-              className={`rounded-xl px-3 py-2 bg-gradient-to-br ${stageGradients[i]} bg-opacity-60 text-center`}
+              className="rounded-xl px-3 py-2.5 text-center"
               style={{ background: 'rgba(255,255,255,0.15)' }}
             >
-              <div className="text-xs font-semibold text-white opacity-80 uppercase tracking-wide">
+              <div className="text-lg mb-0.5">{stageEmojis[stage.id]}</div>
+              <div className="text-xs font-semibold text-white opacity-75 uppercase tracking-wide">
                 {phaseLabels[stage.phase]}
               </div>
               <div className="text-sm font-bold text-white mt-0.5">{stage.name}</div>
+              <div className="text-xs text-indigo-200 mt-1">
+                {stages[stage.id]?.selectedChannelIds.length ?? 0} canal(es)
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Journey body */}
-      <div className="px-6 py-5 space-y-3">
-        {orderedChannelIds.map((channelId) => {
-          const channel = getChannelById(channelId);
-          if (!channel) return null;
+      {/* ── Body: one row per unique channel ── */}
+      {hasAnyData ? (
+        <div className="px-6 py-5 space-y-3">
+          {orderedChannelIds.map((channelId) => {
+            const channel = getChannelById(channelId);
+            if (!channel) return null;
 
-          return (
-            <div
-              key={channelId}
-              className={`border border-gray-100 rounded-xl border-l-4 ${categoryBorderColors[channel.category]} overflow-hidden shadow-sm`}
-            >
-              {/* Channel row header */}
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-                <span className="text-lg">{channel.icon}</span>
-                <span className="font-bold text-gray-800 text-sm">{channel.name}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${categoryBadgeColors[channel.category]}`}>
-                  {channel.category}
-                </span>
+            return (
+              <div
+                key={channelId}
+                className={`border border-gray-100 rounded-xl border-l-4 ${categoryBorderColors[channel.category]} overflow-hidden shadow-sm`}
+              >
+                {/* Channel row header */}
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+                  <span className="text-lg">{channel.icon}</span>
+                  <span className="font-bold text-gray-800 text-sm">{channel.name}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${categoryBadgeColors[channel.category]}`}>
+                    {channel.category}
+                  </span>
+                </div>
+
+                {/* Stage cells */}
+                <div className="grid grid-cols-5 divide-x divide-gray-100">
+                  {funnelStages.map((stage, i) => {
+                    const stageData = stages[stage.id];
+                    const isActiveInStage = stageData?.selectedChannelIds.includes(channelId);
+                    const cell = stageData?.mappings[channelId];
+                    const hasData = isActiveInStage && (cell?.objective || cell?.kpi);
+                    const isSelected = isActiveInStage;
+
+                    return (
+                      <div
+                        key={stage.id}
+                        className={`px-3 py-3 min-h-[70px] ${hasData ? 'bg-white' : isSelected ? stageLightBg[i] + ' bg-opacity-50' : 'bg-gray-50/30'}`}
+                      >
+                        {hasData ? (
+                          <div className="space-y-2">
+                            {cell?.objective && (
+                              <div>
+                                <div className={`text-[10px] font-bold ${stageTextColors[i]} mb-0.5 uppercase tracking-wide`}>
+                                  🎯 Objetivo
+                                </div>
+                                <p className="text-xs text-gray-700 leading-snug">{cell.objective}</p>
+                              </div>
+                            )}
+                            {cell?.kpi && (
+                              <div>
+                                <div className={`text-[10px] font-bold ${stageTextColors[i]} mb-0.5 uppercase tracking-wide`}>
+                                  📊 KPI
+                                </div>
+                                <p className="text-xs text-gray-700 leading-snug">{cell.kpi}</p>
+                              </div>
+                            )}
+                          </div>
+                        ) : isSelected ? (
+                          <div className="text-xs text-gray-300 italic">Canal activo</div>
+                        ) : (
+                          <div className="text-xs text-gray-200">—</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="px-8 py-12 text-center text-gray-400">
+          <p className="text-4xl mb-3">🗺️</p>
+          <p className="text-sm">No seleccionaste canales en ninguna etapa del funnel.</p>
+        </div>
+      )}
 
-              {/* Stage cells */}
-              <div className="grid grid-cols-5 divide-x divide-gray-100">
-                {funnelStages.map((stage, i) => {
-                  const cell = mappings[stage.id]?.[channelId];
-                  const hasData = cell?.objective || cell?.kpi;
-
-                  return (
-                    <div key={stage.id} className={`px-3 py-3 ${hasData ? 'bg-white' : 'bg-gray-50/50'}`}>
-                      {hasData ? (
-                        <div className="space-y-2">
-                          {cell?.objective && (
-                            <div>
-                              <div className={`text-xs font-semibold ${stageTextColors[i]} mb-0.5`}>🎯 Objetivo</div>
-                              <p className="text-xs text-gray-700 leading-snug">{cell.objective}</p>
-                            </div>
-                          )}
-                          {cell?.kpi && (
-                            <div>
-                              <div className={`text-xs font-semibold ${stageTextColors[i]} mb-0.5`}>📊 KPI</div>
-                              <p className="text-xs text-gray-700 leading-snug">{cell.kpi}</p>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-xs text-gray-300 italic">—</div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Footer */}
+      {/* ── Footer ── */}
       <div className="px-6 pb-5 pt-1">
         <div className="border-t border-gray-100 pt-3 flex items-center justify-between text-xs text-gray-400">
-          <span>Customer Journey Map · {brandName} · {studentName}</span>
+          <span>
+            {brandName} · {studentName}
+          </span>
           <span>Embudo Multicanal — Herramienta educativa</span>
         </div>
       </div>

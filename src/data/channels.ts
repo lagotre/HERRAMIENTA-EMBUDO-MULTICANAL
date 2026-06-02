@@ -141,3 +141,30 @@ export const channelsByCategory = {
 };
 
 export const getChannelById = (id: string) => channels.find((c) => c.id === id);
+
+// Canales sugeridos (típicos) por etapa del funnel
+// El estudiante puede elegir cualquiera, pero estos se destacan como recomendados
+export const suggestedChannelsByStage: Record<string, string[]> = {
+  conciencia: [
+    'atl', 'btl', 'meta-ads', 'google-ads', 'programatica',
+    'seo', 'social-media-organico', 'pr-medios',
+  ],
+  'interes-consideracion': [
+    'meta-ads', 'google-ads', 'retail-media',
+    'redes-sociales', 'tienda-online', 'email-crm', 'whatsapp',
+    'seo', 'social-media-organico', 'backlinks',
+  ],
+  'intencion-compra': [
+    'google-ads', 'meta-ads', 'retail-media',
+    'tienda-online', 'marketplace', 'tienda-fisica', 'whatsapp',
+    'seo',
+  ],
+  fidelizacion: [
+    'email-crm', 'whatsapp', 'redes-sociales',
+    'tienda-online', 'tienda-fisica', 'retail-media',
+  ],
+  advocacy: [
+    'ugc', 'redes-sociales', 'email-crm',
+    'social-media-organico', 'pr-medios', 'voz-a-voz', 'backlinks',
+  ],
+};
