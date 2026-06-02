@@ -130,16 +130,16 @@ export function FunnelStageStep({
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Stage header */}
-      <div className={`rounded-2xl p-5 mb-6 bg-gradient-to-r ${stageGradients[stage.id]} text-white shadow-md`}>
-        <div className="flex items-start gap-4">
-          <span className="text-4xl flex-shrink-0">{stageEmojis[stage.id]}</span>
-          <div className="flex-1">
-            <div className="text-xs font-semibold opacity-75 uppercase tracking-widest mb-0.5">
+      {/* Stage header — compact since the sidebar funnel already shows the context */}
+      <div className={`rounded-2xl px-5 py-4 mb-5 bg-gradient-to-r ${stageGradients[stage.id]} text-white shadow-md`}>
+        <div className="flex items-center gap-3">
+          <span className="text-3xl flex-shrink-0">{stageEmojis[stage.id]}</span>
+          <div>
+            <div className="text-[10px] font-semibold opacity-70 uppercase tracking-widest">
               {phaseLabels[stage.phase]} · Etapa {stageIndex + 1} de {totalStages}
             </div>
-            <h2 className="text-2xl font-bold">{stage.name}</h2>
-            <p className="text-sm opacity-90 mt-1.5 leading-relaxed">{stage.description}</p>
+            <h2 className="text-xl font-bold leading-tight">{stage.name}</h2>
+            <p className="text-xs opacity-85 mt-0.5 leading-snug">{stage.description}</p>
           </div>
         </div>
       </div>

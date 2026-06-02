@@ -5,6 +5,7 @@ import { funnelStages } from '@/data/funnelStages';
 import type { JourneyState, StageData } from '@/types/journey';
 import { WelcomeStep } from '@/components/WelcomeStep';
 import { FunnelStageStep } from '@/components/FunnelStageStep';
+import { FunnelVisualizer } from '@/components/FunnelVisualizer';
 import { StepIndicator } from '@/components/StepIndicator';
 import { JourneyPreview } from '@/components/JourneyPreview';
 import { PDFExportButton } from '@/components/PDFExportButton';
@@ -87,11 +88,9 @@ export default function JourneyPage() {
   };
 
   const isPreviewStep = step === TOTAL_STEPS - 1;
-  const isFunnelStep = step >= 1 && step <= funnelStages.length;
+  const isFunnelStep  = step >= 1 && step <= funnelStages.length;
   const funnelStageIndex = isFunnelStep ? step - 1 : -1;
-  const currentStage = isFunnelStep ? funnelStages[funnelStageIndex] : null;
-
-  // Next stage name for the button label
+  const currentStage  = isFunnelStep ? funnelStages[funnelStageIndex] : null;
   const nextStageName =
     isFunnelStep && funnelStageIndex < funnelStages.length - 1
       ? funnelStages[funnelStageIndex + 1].name
@@ -99,9 +98,10 @@ export default function JourneyPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-violet-50/20">
-      {/* Top bar */}
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-gray-100 px-4 py-3">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+
+      {/* ── Top bar ── */}
+      <header className="sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-gray-100 px-4 py-3">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-lg">🗺️</span>
             <span className="font-bold text-gray-800 text-sm hidden sm:block">Embudo Multicanal</span>
@@ -117,8 +117,10 @@ export default function JourneyPage() {
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="max-w-2xl mx-auto px-4 py-8">
+      {/* ── Main ── */}
+      <main className={`mx-auto px-4 py-8 ${isFunnelStep ? 'max-w-6xl' : isPreviewStep ? 'max-w-full' : 'max-w-xl'}`}>
+
+        {/* Step 0: Welcome */}
         {step === 0 && (
           <WelcomeStep
             studentName={journey.studentName}
@@ -128,22 +130,70 @@ export default function JourneyPage() {
           />
         )}
 
+        {/* Steps 1-5: Funnel stages — split layout */}
         {isFunnelStep && currentStage && (
-          <FunnelStageStep
-            stage={currentStage}
-            stageIndex={funnelStageIndex}
-            totalStages={funnelStages.length}
-            nextStageName={nextStageName}
-            stageData={journey.stages[currentStage.id] ?? emptyStageData()}
-            onToggleChannel={(channelId) => toggleChannel(currentStage.id, channelId)}
-            onUpdateMapping={(channelId, field, value) =>
-              updateMapping(currentStage.id, channelId, field, value)
-            }
-            onNext={goNext}
-            onBack={goBack}
-          />
+          <div className="flex gap-6 items-start">
+
+            {/* Left: sticky funnel panel — hidden on small screens */}
+            <aside className="hidden lg:block w-52 flex-shrink-0 sticky top-24">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                <FunnelVisualizer
+                  currentStageId={currentStage.id}
+                  stages={journey.stages}
+                  mode="sidebar"
+                />
+              </div>
+              {/* Mini tip */}
+              <p className="mt-3 text-[10px] text-gray-400 text-center leading-relaxed px-2">
+                Selecciona los canales activos en cada etapa y define su objetivo y KPI.
+              </p>
+            </aside>
+
+            {/* Right: stage form */}
+            <div className="flex-1 min-w-0">
+              {/* Mobile-only mini funnel strip */}
+              <div className="lg:hidden mb-4 bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3 overflow-x-auto">
+                {funnelStages.map((stage, i) => {
+                  const isActive = stage.id === currentStage.id;
+                  const isCompleted = funnelStageIndex > i;
+                  return (
+                    <div
+                      key={stage.id}
+                      className={`flex-shrink-0 flex flex-col items-center gap-0.5 ${
+                        isActive ? 'opacity-100' : isCompleted ? 'opacity-70' : 'opacity-30'
+                      }`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          isActive ? 'ring-2 ring-indigo-500 ring-offset-1 bg-white' : ''
+                        }`}
+                      >
+                        {i + 1}
+                      </div>
+                      <span className="text-[9px] text-gray-600 whitespace-nowrap">{stage.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <FunnelStageStep
+                stage={currentStage}
+                stageIndex={funnelStageIndex}
+                totalStages={funnelStages.length}
+                nextStageName={nextStageName}
+                stageData={journey.stages[currentStage.id] ?? emptyStageData()}
+                onToggleChannel={(channelId) => toggleChannel(currentStage.id, channelId)}
+                onUpdateMapping={(channelId, field, value) =>
+                  updateMapping(currentStage.id, channelId, field, value)
+                }
+                onNext={goNext}
+                onBack={goBack}
+              />
+            </div>
+          </div>
         )}
 
+        {/* Step 6: Preview */}
         {isPreviewStep && (
           <div>
             <div className="text-center mb-6">
@@ -165,7 +215,7 @@ export default function JourneyPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-lg">
+            <div className="rounded-2xl border border-gray-200 overflow-x-auto shadow-lg">
               <JourneyPreview
                 brandName={journey.brandName}
                 studentName={journey.studentName}
