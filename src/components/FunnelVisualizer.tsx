@@ -50,7 +50,6 @@ export function FunnelVisualizer({ currentStageId, stages, mode = 'sidebar' }: F
         <svg
           viewBox="0 0 200 400"
           className="w-full block"
-          style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.08))' }}
         >
           {funnelStages.map((stage, i) => {
             const isActive    = stage.id === currentStageId;

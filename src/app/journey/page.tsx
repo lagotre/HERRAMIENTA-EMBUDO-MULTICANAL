@@ -230,14 +230,15 @@ export default function JourneyPage() {
         {/* Step 6: Preview */}
         {isPreviewStep && (
           <div>
-            <div className="text-center mb-6">
+            {/* no-print: these controls don't appear in the printed PDF */}
+            <div className="no-print text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Tu Customer Journey Map</h2>
               <p className="text-gray-500 text-sm mt-1">
                 El recorrido completo del shopper de <strong>{journey.brandName}</strong> a través de todos los canales.
               </p>
             </div>
 
-            <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <div className="no-print flex items-center justify-between mb-4 gap-3 flex-wrap">
               <Button variant="outline" onClick={goBack} className="rounded-xl px-5">
                 ← Editar etapas
               </Button>
@@ -260,7 +261,7 @@ export default function JourneyPage() {
               />
             </div>
 
-            <div className="mt-6 flex justify-center">
+            <div className="no-print mt-6 flex justify-center">
               <PDFExportButton brandName={journey.brandName} groupNumber={journey.groupNumber} />
             </div>
           </div>
